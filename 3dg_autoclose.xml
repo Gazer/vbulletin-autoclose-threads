@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<product productid="3dg_autoclose" active="1">
+	<title>3DG - Auto Close Threads</title>
+	<description>Close Thread automatically due inactivity.</description>
+	<version>1.0.0</version>
+	<url>http://www.3dgames.com.ar/</url>
+	<versioncheckurl></versioncheckurl>
+	<dependencies>
+	</dependencies>
+	<codes>
+	  <code version="1.0.0">
+    <installcode><![CDATA[$db->hide_errors();
+      $db->query_write("ALTER TABLE `" . TABLE_PREFIX . "forum` ADD `3dg_autoclose_perforum` smallint( 3 ) UNSIGNED NOT NULL DEFAULT '0'");
+      $db->show_errors();]]>
+    </installcode>
+    <uninstallcode><![CDATA[$db->hide_errors();
+      $db->query_write("ALTER TABLE `" . TABLE_PREFIX . "forum` DROP `3dg_autoclose_perforum`");
+      $db->show_errors();]]>
+    </uninstallcode>
+		</code>
+	</codes>
+	<templates>
+	</templates>
+	<plugins>
+	  <plugin active="1" executionorder="5">
+      <title><![CDATA[Days to consider a thread for auto-close (per forum setting)]]></title>
+		  <hookname>forumadmin_edit_form</hookname>
+		  <phpcode><![CDATA[
+		    print_table_header($vbphrase['3dg_autoclose_perforum_options']);
+        print_input_row($vbphrase['3dg_autoclose_perforum'], 'forum[3dg_autoclose_perforum]', $forum['3dg_autoclose_perforum']);
+        ]]>
+      </phpcode>
+    </plugin>
+		<plugin active="1" executionorder="5">
+			<title><![CDATA[Valid fields for auto-close forums (per forum setting)]]></title>
+			<hookname>forumdata_start</hookname>
+			<phpcode><![CDATA[$this->validfields['3dg_autoclose_perforum'] = array(TYPE_UINT, REQ_NO);]]></phpcode>
+		</plugin>
+		<plugin active="1" executionorder="5">
+			<title>Show a message to the users if the thread was auto closed</title>
+			<hookname>showthread_complete</hookname>
+			<phpcode><![CDATA[
+      if (($vbulletin->options['3dg_autoclose_onoff'] == 1) && !$thread['open'] && !$thread['sticky']) {
+        if ($show['hybridmode'] || $show['threadedmode'] || ($vbulletin->GPC['pagenumber'] >= ceil(($thread['replycount'] + 1) / $perpage))) {
+        
+          if ($foruminfo['3dg_autoclose_perforum'] != 0) {
+            $age_3dg = $foruminfo['3dg_autoclose_perforum'];
+          } else {
+            $age_3dg = $vbulletin->options['3dg_autoclose_postage'];
+          }
+
+          if ($threadinfo['lastpost'] < intval(TIMENOW-(86400*$age_3dg))) {
+            /* Fake Post */
+            $post = array();
+            $post['userid'] = 0;
+            $post["postusername"] = $vbulletin->options['3dg_autoclose_username'];;
+            $post["usertitle"] = $vbulletin->options['3dg_autoclose_usertitle'];;
+            $post["posts"] = 0;
+            $post["dateline"] = TIMENOW;
+            $post["joindate"] = 0;
+            $post["isdeleted"] = 0;
+            $post["username"] = $vbulletin->options['3dg_autoclose_username'];;
+            $post['visible'] = 1;
+            $post['postid'] = 0;
+
+            $post['title'] = $vbulletin->options['3dg_autoclose_posttitle'];
+            $post["pagetext"] = $vbulletin->options['3dg_autoclose_postbody'];
+            $post['message'] = $vbulletin->options['3dg_autoclose_postbody'];
+            $post['attach'] = 0;
+            $post['islastshown'] = 0;
+
+            $postbits .= $postbit_obj->construct_postbit($post);
+          }
+        }
+      }]]></phpcode>
+		</plugin>
+    <plugin active="1" executionorder="5">
+      <title>Add forumlist</title>
+			<hookname>admin_options_print</hookname>
+			<phpcode><![CDATA[
+			  if ($setting['optioncode'] == 'forumlist') {
+          $name = "setting[$setting[varname]][]";
+          print_forum_chooser('Excluded Forums', $name, @unserialize($vbulletin->options[$setting['varname']]), false, true, true, "%s (Category)");
+          $handled = true;
+        }
+      ]]>
+      </phpcode>
+    </plugin>
+		<plugin active="1" executionorder="5">
+			<title>Process forum list</title>
+			<hookname>admin_options_processing</hookname>
+			<phpcode><![CDATA[
+			  if ($oldsetting['varname'] == '3dg_autoclose_forums')
+        {
+          $vbulletin->GPC['setting'][$oldsetting['varname']] = serialize($vbulletin->GPC['setting'][$oldsetting['varname']]);
+        }
+        ]]>
+      </phpcode>
+		</plugin>
+	</plugins>
+	<phrases>
+	  <phrasetype name="Forum-Related" fieldname="forum">
+      <phrase name="3dg_autoclose_perforum" date="0" username="0" version="1.0.0"><![CDATA[
+        Close Threads Older Than (in days)
+        ]]>
+      </phrase>
+    	<phrase name="3dg_autoclose_perforum_options" date="0" username="" version="1.0.0"><![CDATA[
+    	  Autoclose Threads
+    	  ]]>
+    	</phrase>
+    </phrasetype>
+		<phrasetype name="vBulletin Settings" fieldname="vbsettings">
+			<phrase name="setting_3dg_autoclose_onoff_desc" date="0" username="" version=""><![CDATA[Auto-close threads?]]></phrase>
+			<phrase name="setting_3dg_autoclose_onoff_title" date="0" username="" version=""><![CDATA[Enable?]]></phrase>
+			<phrase name="setting_3dg_autoclose_posttitle_desc" date="0" username="" version=""><![CDATA[Fake Post Title]]></phrase>
+			<phrase name="setting_3dg_autoclose_posttitle_title" date="0" username="" version=""><![CDATA[Text to show as Post title]]></phrase>
+			<phrase name="setting_3dg_autoclose_postbody_desc" date="0" username="" version=""><![CDATA[Fake Post Body<br /><br />BBCode are allowed]]></phrase>
+			<phrase name="setting_3dg_autoclose_postbody_title" date="0" username="" version=""><![CDATA[Text to show as Post body]]></phrase>
+			<phrase name="setting_3dg_autoclose_postage_desc" date="0" username="" version=""><![CDATA[Close Thread Older Than (in days)]]></phrase>
+			<phrase name="setting_3dg_autoclose_postage_title" date="0" username="" version=""><![CDATA[Set the amount of days to consider a thread as Inactive]]></phrase>
+			<phrase name="setting_3dg_autoclose_username_desc" date="0" username="" version=""><![CDATA[Set the username to show in the fake post.]]></phrase>
+			<phrase name="setting_3dg_autoclose_username_title" date="0" username="" version=""><![CDATA[Fake Post Username]]></phrase>
+			<phrase name="setting_3dg_autoclose_usertitle_desc" date="0" username="" version=""><![CDATA[Set the usertitle yo show in the fake post]]></phrase>
+			<phrase name="setting_3dg_autoclose_usertitle_title" date="0" username="" version=""><![CDATA[Fake Post Usertitle]]></phrase>
+			<phrase name="setting_3dg_autoclose_forums_desc" date="0" username="" version=""><![CDATA[Add the Forums IDs. Note that child forums will not be affected if the parent forum is in the list]]></phrase>
+			<phrase name="setting_3dg_autoclose_forums_title" date="0" username="" version=""><![CDATA[Forums where NOT apply this rule]]></phrase>
+			<phrase name="setting_3dg_autoclose_threads_desc" date="0" username="" version=""><![CDATA[Add the Threads IDs. This will exclude the listed threads of the auto close, even if the parent forum has the auto-close feature enabled]]></phrase>
+			<phrase name="setting_3dg_autoclose_threads_title" date="0" username="" version=""><![CDATA[Threads where NOT apply this rule]]></phrase>
+			<phrase name="settinggroup_3dg_autoclose" date="0" username="" version=""><![CDATA[3DG - Auto Close Threads]]></phrase>
+		</phrasetype>
+	</phrases>
+	<options>
+		<settinggroup name="3dg_autoclose" displayorder="65535">
+			<setting varname="3dg_autoclose_onoff" displayorder="10">
+				<datatype>number</datatype>
+				<optioncode>yesno</optioncode>
+				<defaultvalue>0</defaultvalue>
+			</setting>
+      <setting varname="3dg_autoclose_forums" displayorder="12">
+				<datatype>free</datatype>
+				<optioncode>forumlist</optioncode>
+				<defaultvalue><![CDATA[a:1:{i:0;s:2:"0";}]]></defaultvalue>
+			</setting>
+      <setting varname="3dg_autoclose_threads" displayorder="13">
+				<datatype>free</datatype>
+				<optioncode>multiinput</optioncode>
+			</setting>
+			<setting varname="3dg_autoclose_postage" displayorder="15">
+				<datatype>number</datatype>
+				<defaultvalue>60</defaultvalue>
+			</setting>
+			<setting varname="3dg_autoclose_posttitle" displayorder="20">
+				<datatype>free</datatype>
+				<defaultvalue>Thread Closed</defaultvalue>
+			</setting>
+			<setting varname="3dg_autoclose_postbody" displayorder="30">
+				<datatype>free</datatype>
+				<optioncode>textarea</optioncode>
+				<defaultvalue><![CDATA[Sorry, this Thread is closed due [b]inactivity[/b]]]></defaultvalue>
+			</setting>
+			<setting varname="3dg_autoclose_username" displayorder="30">
+				<datatype>free</datatype>
+				<defaultvalue><![CDATA[Nobody]]></defaultvalue>
+			</setting>
+			<setting varname="3dg_autoclose_usertitle" displayorder="30">
+				<datatype>free</datatype>
+				<defaultvalue><![CDATA[Auto Close]]></defaultvalue>
+			</setting>
+		</settinggroup>
+	</options>
+	<helptopics>
+	</helptopics>
+	<cronentries>
+		<cron varname="3dg_autoclose_cron" active="1" loglevel="1">
+			<filename>./includes/cron/3dg_autoclose_cron.php</filename>
+			<scheduling weekday="-1" day="-1" hour="3" minute="0" />
+		</cron>
+	</cronentries>
+	<faqentries>
+	</faqentries>
+</product>

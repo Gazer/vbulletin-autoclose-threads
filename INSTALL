@@ -1,0 +1,27 @@
+VB Auto close Threads
+=====================
+
+This vBulletin Product allwo you yo automatic close threads due inactivity.
+
+You can customice :
+ * Global Enabled? option (yes/no)
+ * Excluded Forums
+ * Excluded Threads (this threads will not be autoclosed even if the parent forum has autoclose enabled)
+ * Last post Age : How long is the inactivity period
+ * Fake post warning the users that the thread was autoclosed :
+   - Post title
+   - Post body
+   - Post username
+   - Post usertitle
+   
+Installation
+============
+
+Upload the 3dg_autoclose_cron.php into your includes/cron server directory and then install the
+product XML file from the admincp.
+
+Notes
+=====
+
+* The autoclosed threads are marked as closed in the database, there is no automatic rollback feature.
+* Sticky posts are not autoclosed
